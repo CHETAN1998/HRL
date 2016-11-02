@@ -1,0 +1,552 @@
+rrives correctly, the receiver can deliver to the network layer, in sequence, all the
+frames it has buffered. Selective repeat corresponds to a receiver window larger
+than 1. This approach can require large amounts of data link layer memory if the
+window is large.
+Selective repeat is often combined with having the receiver send a negative
+acknowledgement (NAK) when it detects an error, for example, when it receives a
+checksum error or a frame out of sequence. NAKs stimulate retransmission be-
+fore the corresponding timer expires and thus improve performance.
+In Fig. 3-18(b), frames 0 and 1 are again correctly received and acknowledged
+and frame 2 is lost. When frame 3 arrives at the receiver, the data link layer there
+notices that it has missed a frame, so it sends back a NAK for 2 but buffers 3.
+When frames 4 and 5 arrive, they, too, are buffered by the data link layer instead
+of being passed to the network layer. Eventually, the NAK 2 gets back to the
+sender, which immediately resends frame 2. When that arrives, the data link layer
+now has 2, 3, 4, and 5 and can pass all of them to the network layer in the correct
+order. It can also acknowledge all frames up to and including 5, as shown in the
+figure. If the NAK should get lost, eventually the sender will time out for frame 2
+and send it (and only it) of its own accord, but that may be a quite a while later.
+These two alternative approaches are trade-offs between efficient use of band-
+width and data link layer buffer space. Depending on which resource is scarcer,
+one or the other can be used. Figure 3-19 shows a go-back-n protocol in which
+the receiving data link layer only accepts frames in order; frames following an
+error are discarded. In this protocol, for the first time we have dropped the as-
+sumption that the network layer always has an infinite supply of packets to send.
+When the network layer has a packet it wants to send, it can cause a net-
+work layer ready event to happen. However, to enforce the flow control limit on
+the sender window or the number of unacknowledged frames that may be out-
+standing at any time, the data link layer must be able to keep the network layer
+from bothering it with more work. The library procedures enable network layer
+and disable network layer do this job.
+The maximum number of frames that may be outstanding at any instant is not
+the same as the size of the sequence number space. For go-back-n, MAX SEQ
+frames may be outstanding at any instant, even though there are MAX SEQ + 1
+distinct sequence numbers (which are 0, 1, . . . , MAX SEQ). We will see an
+even tighter restriction for the next protocol, select
+Suppose that the three-statement while loop near the end of protocol 6 was removed
+from the code. Would this affect the correctness of the protocol or just the per-
+formance? Explain your answer.
+27. The distance from earth to a distant planet is approximately 9 × 10 10 m. What is the
+channel utilization if a stop-and-wait protocol is used for frame transmission on a 64
+Mbps point-to-point link? Assume that the frame size is 32 KB and the speed of light
+is 3 × 10 8 m/s.
+28. In the previous problem, suppose a sliding window protocol is used instead. For what
+send window size will the link utilization be 100%? You may ignore the protocol
+processing times at the sender and the receiver.
+29. In protocol 6, the code for frame arrival has a section used for NAK s. This section is
+invoked if the incoming frame is a NAK and another condition is met. Give a scenario
+where the presence of this other condition is essential.
+30. Consider the operation of protocol 6 over a 1-Mbps perfect (i.e., error-free) line. The
+maximum frame size is 1000 bits. New packets are generated 1 second apart. The
+timeout interval is 10 msec. If the special acknowledgement timer were eliminated,
+unnecessary timeouts would occur. How many times would the average message be
+transmitted?
+31. In protocol 6, MAX SEQ = 2 n − 1. While this condition is obviously desirable to
+make efficient use of header bits, we have not demonstrated that it is essential. Does
+the protocol work correctly for MAX SEQ = 4, for example?
+32. Frames of 1000 bits are sent over a 1-Mbps channel using a geostationary satellite
+whose propagation time from the earth is 270 msec. Acknowledgements are always
+piggybacked onto data frames. The headers are very short. Three-bit sequence num-
+bers are used. What is the maximum achievable channel utilization for
+(a) Stop-and-wait?
+(b) Protocol 5?
+(c) Protocol 6?
+33. Compute the fraction of the bandwidth that is wasted on overhead (headers and re-
+transmissions) for protocol 6 on a heavily loaded 50-kbps satellite channel with data
+frames consisting of 40 header and 3960 data bits. Assume that the signal propagation
+time from the earth to the satellite is 270 msec. ACK frames never occur. NAK frames
+are 40 bits. The error rate for data frames is 1%, and the error rate for NAK frames is
+negligible. The sequence numbers are 8 bits.
+34. Consider an error-free 64-kbps satellite channel used to send 512-byte data frames in
+one direction, with very short acknowledgements coming back the other way. What is
+the maximum throughput for window sizes of 1, 7, 15, and 127? The earth-satellite
+propagation time is 270 msec.
+35. A 100-km-long cable runs at the T1 data rate. The propagation speed in the cable is
+2/3 the speed of light in vacuum. How many bits fit in the cable?
+36. Give at least one reason why PPP uses byte stuffing instead of bit stuffing to prevent
+accidental flag bytes within the payload from causing confusion.CHAP. 3
+PROBLEMS
+255
+37. What is the minimum overhead to send an IP packet using PPP? Count onive repeat. To see why this res-
+triction is required, consider the following scenario with MAX SEQ = 7:
+1. The sender sends frames 0 through 7.
+2. A piggybacked acknowledgement for 7 comes back to the sender.
+3. The sender sends another eight frames, again with sequence numbers
+0 through 7.
+4. Now another piggybacked acknowledgement for frame 7 comes in.
+The sender has no way of telling. For this reason the maximum number of out-
+standing frames must be restricted to MAX SEQ.
+Although protocol 5 does not buffer the frames arriving after an error, it does
+not escape the problem of buffering altogether. Since a sender may have to
+retransmit all the unacknowledged frames at a future time, it must hang on to all
+transmitted frames until it knows for sure that they have been accepted by the re-
+ceiver. When an acknowledgement comes in for frame n, frames n − 1, n − 2,
+and so on are also automatically acknowledged. This type of acknowledgement is
+called a cumulative acknowledgement. This property is especially important
+when some of the previous acknowledgement-bearing frames were lost or gar-
+bled. Whenever any acknowledgement comes in, the data link layer checks to see
+if any buffers can now be released. If buffers can be released (i.e., there is some
+room available in the window), a previously blocked network layer can now be al-
+lowed to cause more network layer ready events.
+For this protocol, we assume that there is always reverse traffic on which to
+piggyback acknowledgements. Protocol 4 does not need this assumption since it
+sends back one frame every time it receives a frame, even if it has already sent
+that frame. In the next protocol we will solve the problem of one-way traffic in an
+elegant way.
+Because protocol 5 has multiple outstanding frames, it logically needs multi-
+ple timers, one per outstanding frame. Each frame times out independently of all
+the other ones. However, all of these timers can easily be simulated in software
+using a single hardware clock that causes interrupts periodically. The pending
+timeouts form a linked list, with each node of the list containing the number of
+clock ticks until the timer expires, the frame being timed, anThe go-back-n protocol works well if errors are rare, but if the line is poor it
+wastes a lot of bandwidth on retransmitted frames. An alternative strategy, the
+selective repeat protocol, is to allow the receiver to accept and buffer the frames
+following a damaged or lost one.
+In this protocol, both sender and receiver maintain a window of outstanding
+and acceptable sequence numbers, respectively. The sender’s window size starts
+out at 0 and grows to some predefined maximum. The receiver’s window, in con-
+trast, is always fixed in size and equal to the predetermined maximum. The re-
+ceiver has a buffer reserved for each sequence number within its fixed window.
+Associated with each buffer is a bit (arrived ) telling whether the buffer is full or
+empty. Whenever a frame arrives, its sequence number is checked by the function
+between to see if it falls within the window. If so and if it has not already been re-
+ceived, it is accepted and stored. This action is taken without regard to whether or
+not the frame contains the next packet expected by the network layer. Of course,
+it must be kept within the data link layer and not passed to the network layer until
+all the lower-numbered frames have already been delivered to the network layer
+in the correct order. A protocol using this algorithm is given in Fig. 3-21.
+Nonsequential receive introduces further constraints on frame sequence num-
+bers compared to protocols in which frames are only accepted in order. We can
+illustrate the trouble most easily with an example. Suppose that we have a 3-bit
+sequence number, so that the sender is permitted to transmit up to seven frames
+before being required to wait for an acknowledgement. Initially, the sender’s and
+receiver’s windows are as shown in Fig. 3-22(a). The sender now transmits
+frames 0 through 6. The receiver’s window allows it to accept any frame with a
+sequence number between 0 and 6 inclusive. All seven frames arrive correctly, so
+the receiver acknowledges them and advances its window to allow receipt of 7, 0,
+1, 2, 3, 4, or 5, as shown in Fig. 3-22(b). All seven buffers are marked empty.
+It is at this point that disaster strikes in the form of a lightning bolt hitting the
+telephone pole and wiping out all the acknowledgements. The protocol should
+operate correctly despite this disaster. The sender eventually times out and re-
+transmits frame 0. When this frame arrives at the receiver, a check is made to see
+if it falls within the receiver’s window. Unfortunately, in Fig. 3-22(b) frame 0 i
+within the new window, so it is accepted as a new frame. The receiver also sends
+a (piggybacked) acknowledgement for frame 6, since 0 through 6 have been re-
+ceived.
+The sender is happy to learn that all its transmitted frames did actually arrive
+correctly, so it advances its window and immediately sends frames 7, 0, 1, 2, 3, 4,
+and 5. Frame 7 will be accepted by the receiver and its packet will be passed di-
+rectly to the network layer. Immediately thereafter, the receiving data link layer
+checks to see if it has a valid frame 0 already, discovers that it does, and passes
+the old buffered packet to the network layer as if it were a new packet. Conse-
+quently, the network layer gets an incorrect packet, and the protocol fails.
+The essence of the problem is that after the receiver advanced its window, the
+new range of valid sequence numbers overlapped the old one. Consequently, the
+following batch of frames might be either duplicates (if all the acknowledgements
+were lost) or new ones (if all the acknowledgements were received). The poor re-
+ceiver has no way of distinguishing these two cases.
+The way out of this dilemma lies in making sure that after the receiver has ad-
+vanced its window there is no overlap with the original window. To ensure that
+there is no overlap, the maximum window size should be at most half the range of
+the sequence numbers. This situation is shown in Fig. 3-22(c) and Fig. 3-22(d).
+With 3 bits, the sequence numbers range from 0 to 7. Only four unacknowledged
+frames should be outstanding at any instant. That way, if the receiver has just ac-
+cepted frames 0 through 3 and advanced its window to permit acceptance of
+frames 4 through 7, it can unambiguously tell if subsequent frames are retransmis-
+sions (0 through 3) or new ones (4 through 7). In general, the window size for
+protocol 6 will be (MAX SEQ + 1)/2.
+An interesting question is: how many buffers must the receiver have? Under
+no conditions will it ever accept frames whose sequence numbers are below the
+lower edge of the window or frames whose sequence numbers are above the upper
+edge of the window. Consequently, the number of buffers needed is equal to the
+window size, not to the range of sequence numbers. In the preceding example of
+a 3-bit sequence number, four buffers, numbered 0 through 3, are needed. When
+frame i arrives, it is put in buffer i mod 4. Notice that although i and (i + 4) mod
+4 are ‘‘competing’’ for the same buffer, they are never within the window at the
+same time, because that would imply a window size of at least 5.
+For the same reason, the number of timers needed is equal to the number of
+buffers, not to the size of the sequence space. Effectively, a timer is associated
+with each buffer. When the timer runs out, the contents of the buffer are retrans-
+mitted.
+Protocol 6 also relaxes the implicit assumption that the channel is heavily
+loaded. We made this assumption in protocol 5 when we relied on frames being
+sent in the reverse direction on which to piggyback acknowledgements. If the re-
+verse traffic is light, the acknowledgements may be held up for a long period of
+time, which can cause problems. In the extreme, if there is a lot of traffic in o
+direction and no traffic in the other direction, the protocol will block when the
+sender window reaches its maximum.
+To relax this assumption, an auxiliary timer is started by start ack timer after
+an in-sequence data frame arrives. If no reverse traffic has presented itself before
+this timer expires, a separate acknowledgement frame is sent. An interrupt due to
+the auxiliary timer is called an ack timeout event. With this arrangement, traffic
+flow in only one direction is possible because the lack of reverse data frames onto
+which acknowledgements can be piggybacked is no longer an obstacle. Only one
+auxiliary timer exists, and if start ack timer is called while the timer is running, it
+has no effect. The timer is not reset or extended since its purpose is to provide
+some minimum rate of acknowledgements.
+It is essential that the timeout associated with the auxiliary timer be appreci-
+ably shorter than the timeout used for timing out data frames. This condition is
+required to ensure that a correctly received frame is acknowledged early enough
+that the frame’s retransmission timer does not expire and retransmit the frame.
+Protocol 6 uses a more efficient strategy than protocol 5 for dealing with er-
+rors. Whenever the receiver has reason to suspect that an error has occurred, it
+sends a negative acknowledgement ( NAK ) frame back to the sender. Such a
+frame is a request for retransmission of the frame specified in the NAK . In two
+cases, the receiver should be suspicious: when a damaged frame arrives or a frame
+other than the expected one arrives (potential lost frame). To avoid making multi-
+ple requests for retransmission of the same lost frame, the receiver should keep
+track of whether a NAK has already been sent for a given frame. The variable
+no nak in protocol 6 is true if no NAK has been sent yet for frame expected. If
+the NAK gets mangled or lost, no real harm is done, since the sender will eventu-
+ally time out and retransmit the missing frame anyway. If the wrong frame ar-
+rives after a NAK has been sent and lost, no nak will be true and the auxiliary
+timer will be started. When it expires, an ACK will be sent to resynchroniz
+In some situations, the time required for a frame to propagate to the destina-
+tion, be processed there, and have the acknowledgement come back is (nearly)
+constant. In these situations, the sender can adjust its timer to be ‘‘tight,’’ just
+slightly larger than the normal time interval expected between sending a frame
+and receiving its acknowledgement. NAK s are not useful in this case.
+However, in other situations the time can be highly variable. For example, if
+the reverse traffic is sporadic, the time before acknowledgement will be shorter
+when there is reverse traffic and longer when there is not. The sender is faced
+with the choice of either setting the interval to a small value (and risking unneces-
+sary retransmissions), or setting it to a large value (and going idle for a long
+period after an error). Both choices waste bandwidth. In general, if the standard
+deviation of the acknowledgement interval is large compared to the interval itself,
+the timer is set ‘‘loose’’ to be conservative. NAK s can then appreciably speed up
+retransmission of lost or damaged frames.
+Closely related to the matter of timeouts and NAK s is the question of deter-
+mining which frame caused a timeout. In protocol 5, it is always ack expected,
+because it is always the oldest. In protocol 6, there is no trivial way to determine
+who timed out. Suppose that frames 0 through 4 have been transmitted, meaning
+that the list of outstanding frames is 01234, in order from oldest to youngest.
+Now imagine that 0 times out, 5 (a new frame) is transmitted, 1 times out, 2 times
+out, and 6 (another new frame) is transmitted. At this point the list of outstanding
+frames is 3405126, from oldest to youngest. If all inbound traffic (i.e., acknowl-
+edgement-bearing frames) is lost for a while, the seven outstanding frames will
+time out in that order.
+To keep the example from getting even more complicated than it already is,
+we have not shown the timer administration. Instead, we just assume that the
+variable oldest frame is set upon timeout to indicate which frame timed out.
+ppleTalk. Codes starting with a 1 bit are used for PPP configuration protocols,
+including LCP and a different NCP for each network layer protocol supported.
+The default size of the Protocol field is 2 bytes, but it can be negotiated down to 1
+byte using LCP. The designers were perhaps overly cautious in thinking that
+someday there might be more than 256 protocols in use.
+The Payload field is variable length, up to some negotiated maximum. If the
+length is not negotiated using LCP during line setup, a default length of 1500
+bytes is used. Padding may follow the payload if it is needed.
+After the Payload field comes the Checksum field, which is normally 2 bytes,
+but a 4-byte checksum can be negotiated. The 4-byte checksum is in fact the same
+32-bit CRC whose generator polynomial is given at the end of Sec. 3.2.2. The 2-
+byte checksum is also an industry-standard CRC.
+PPP is a framing mechanism that can carry the packets of multiple protocols
+over many types of physical layers. To use PPP over SONET, the choices to make
+are spelled out in RFC 2615 (Malis and Simpson, 1999). A 4-byte checksum is
+used, since this is the primary means of detecting transmission errors over the
+physical, link, and network layers. It is recommended that the Address, Control,
+and Protocol fields not be compressed, since SONET links already run at relative-
+ly high rates.
+There is also one unusual feature. The PPP payload is scrambled (as described
+in Sec. 2.5.1) before it is inserted into the SONET payload. Scrambling XORs the
+payload with a long pseudorandom sequence before it is transmitted. The issue is
+that the SONET bitstream needs frequent bit transitions for synchronization.
+These transitions come naturally with the variation in voice signals, but in data
+communication the user chooses the information that is sent and might send a
+packet with a long run of 0s. With scrambling, the likelihood of a user being able
+to cause problems by sending a long run of 0s is made extremely low.
+Before PPP frames can be carried over SONET lines, the PPP link must be es-
+tablished and configured. The phases that the link goes through when it is brought
+up, used, and taken down again are shown in Fig. 3-25.
+The link starts in the DEAD state, which means that there is no connection at
+the physical layer. When a physical layer connection is established, the link
+moves to ESTABLISH. At this point, the PPP peers exchange a series of LCP
+packets, each carried in the Payload field of a PPP frame, to select the PPP op-
+tions for the link from the possibilities mentioned above. The initiating peer pro-
+poses options, and the responding peer either accepts or rejects them, in whole or
+part. The responder can also make alternative proposals.
+If LCP option negotiation is successful, the link reaches the AUTHENTICATE
+state. Now the two parties can check each other’s identities, if desired. If
+authentication is successful, the NETWORK state is entered and a series of NCP
+packets are sent to configure the network layer. It is difficult to generalize about
+the NCP protocols because each one is specific to some network layer protocol
+and allows configuration requests to be made that are specific to that protocol.
+rthogonal frequency division multiplexing (also known as discrete multitone), as
+we saw in Sec 2.5.3. Near the top of the stack, just below the IP network layer, is
+PPP. This protocol is the same PPP that we have just studied for packet over
+SONET transports. It works in the same way to establish and configure the link
+and carry IP packets.
+In between ADSL and PPP are ATM and AAL5. These are new protocols that
+we have not seen before. ATM (Asynchronous Transfer Mode) was designed
+in the early 1990s and launched with incredible hype. It promised a network tech-
+nology that would solve the world’s telecommunications problems by merging
+voice, data, cable television, telegraph, carrier pigeon, tin cans connected by
+strings, tom toms, and everything else into an integrated system that could do
+everything for everyone. This did not happen. In large part, the problems of ATM
+were similar to those we described concerning the OSI protocols, that is, bad tim-
+ing, technology, implementation, and politics. Nevertheless, ATM was much
+more successful than OSI. While it has not taken over the world, it remains wide-
+ly used in niches including broadband access lines such as DSL, and WAN links
+inside telephone networks.
+ATM is a link layer that is based on the transmission of fixed-length cells of
+information. The ‘‘Asynchronous’’ in its name means that the cells do not always
+need to be sent in the way that bits are continuously sent over synchronous lines,
+as in SONET. Cells only need to be sent when there is information to carry.
+ATM is a connection-oriented technology. Each cell carries a virtual circuit
+identifier in its header and devices use this identifier to forward cells along the
+paths of established connections.
+The cells are each 53 bytes long, consisting of a 48-byte payload plus a 5-byte
+header. By using small cells, ATM can flexibly divide the bandwidth of a physi-
+cal layer link among different users in fine slices. This ability is useful when, for
+example, sending both voice and data over one link without having long data
+packets that would cause large variations in the delay of the voice samples. The
+unusual choice for the cell length (e.g., compared to the more natural choice of a250
+THE DATA LINK LAYER
+CHAP. 3
+power of 2) is an indication of just how political the design of ATM was. The
+48-byte size for the payload was a compromise to resolve a deadlock between
+Europe, which wanted 32-byte cells, and the U.S., which wanted 64-byte cells. A
+brief overview of ATM is given by Siu and Jain (1995).
+To send data over an ATM network, it needs to be mapped into a sequence of
+cells. This mapping is done with an ATM adaptation layer in a process called seg-
+mentation and reassembly. Several adaptation layers have been defined for dif-
+ferent services, ranging from periodic voice samples to packet data. The main one
+used for packet data is AAL5 (ATM Adaptation Layer 5).
+An AAL5 frame is shown in Fig. 3-27. Instead of a header, it has a trailer that
+gives the length and has a 4-byte CRC for error detection. Naturally, the CRC is
+the same one used for PPP and IEEE 802 LANs like Ethernet. Wang and
+Crowcroft (1992) have shown that it is strong enough to detect nontraditio
+The task of the data link layer is to convert the raw bit stream offered by the
+physical layer into a stream of frames for use by the network layer. The link layer
+can present this stream with varying levels of reliability, ranging from con-
+nectionless, unacknowledged service to reliable, connection-oriented service.
+Various framing methods are used, including byte count, byte stuffing, and bit
+stuffing. Data link protocols can provide error control to detect or correct dam-
+aged frames and to retransmit lost frames. To prevent a fast sender from overrun-
+ning a slow receiver, the data link protocol can also provide flow control. The sli-
+ding window mechanism is widely used to integrate error control and flow control
+in a simple way. When the window size is 1 packet, the protocol is stop-and-wait.
+Codes for error correction and detection add redundant information to mes-
+sages by using a variety of mathematical techniques. Convolutional codes and
+Reed-Solomon codes are widely deployed for error correction, with low-density
+parity check codes increasing in popularity. The codes for error detection that are
+used in practice include cyclic redundancy checks and checksums. All these codes
+can be applied at the link layer, as well as at the physical layer and higher layers.
+We examined a series of protocols that provide a reliable link layer using ac-
+knowledgements and retransmissions, or ARQ (Automatic Repeat reQuest), under
+more realistic assumptions. Starting from an error-free environment in which the
+receiver can handle any frame sent to it, we introduced flow control, followed by
+error control with sequence numbers and the stop-and-wait algorithm. Then we
+used the sliding window algorithm to allow bidirectional communication and
+introduce the concept of piggybacking. The last two protocols pipeline the trans-
+mission of multiple frames to prevent the sender from blocking on a link with a
+long propagation delay. The receiver can either discard all frames other than the
+next one in sequence, or buffer out-of-order frames and send negative acknowl-
+edgements for greater bandwidth efficiency. The former strategy is a go-back-n
+protocol, and the latter strategy is a selective repeat protocol.
+The Internet uses PPP as the main data link protocol over point-to-point lines.
+It provides a connectionless unacknowledged service, using flag bytes to delimit
+frames and a CRC for error detection. It is used to carry packets across a range of
+links, including SONET links in wide-area networks and ADSL links
+. The following character encoding is used in a data link protocol:
+A: 01000111
+B: 11100011
+FLAG: 01111110
+ESC: 11100000
+Show the bit sequence transmitted (in binary) for the four-character frame A B ESC
+FLAG when each of the following framing methods is used:
+(a) Byte count.
+(b) Flag bytes with byte stuffing.
+(c) Starting and ending flag bytes with bit stuffing.
+3. The following data fragment occurs in the middle of a data stream for which the byte-
+stuffing algorithm described in the text is used: A B ESC C ESC FLAG FLAG D.
+What is the output after stuffing?
+4. What is the maximum overhead in byte-stuffing algorithm?
+5. One of your classmates, Scrooge, has pointed out that it is wasteful to end each frame
+with a flag byte and then begin the next one with a second flag byte. One flag byte
+could do the job as well, and a byte saved is a byte earned. Do you agree?
+6. A bit string, 0111101111101111110, needs to be transmitted at the data link layer.
+What is the string actually transmitted after bit stuffing?
+7. Can you think of any circumstances under which an open-loop protocol (e.g., a Ham-
+ming code) might be preferable to the feedback-type protocols discussed throughout
+this chapter?
+8. To provide more reliability than a single parity bit can give, an error-detecting coding
+scheme uses one parity bit for checking all the odd-numbered bits and a second parity
+bit for all the even-numbered bits. What is the Hamming distance of this code?
+9. Sixteen-bit messages are transmitted using a Hamming code. How many check bits
+are needed to ensure that the receiver can detect and correct single-bit errors? Show
+the bit pattern transmitted for the message 1101001100110101. Assume that even par-
+ity is used in the Hamming code.
+10. A 12-bit Hamming code whose hexadecimal value is 0xE4F arrives at a receiver.
+What was the original value in hexadecimal? Assume that not more than 1 bit is in
+error.
+11. One way of detecting errors is to transmit data as a block of n rows of k bits per row
+and add parity bits to each row and each column. The bitin the lower-right corner is a
+parity bit that checks its row and its column. Will this scheme detect all single errors?
+Double errors? Triple errors? Show that this scheme cannot detect some four-bit er-
+rors.
+12. Suppose that data are transmitted in blocks of sizes 1000 bits. What is the maximum
+error rate under which error detection and retransmission mechanism (1 parity bit per
+block) is better than using Hamming code? Assume that bit errors are independent of
+one another and no bit error occurs during retransmission.
+13. A block of bits with n rows and k columns uses horizontal and vertical parity bits for
+error detection. Suppose that exactly 4 bits are inverted due to transmission errors.
+Derive an expression for the probability that the error will be
+THE MEDIUM ACCESS CONTROL
+SUBLAYER
+Network links can be divided into two categories: those using point-to-point
+connections and those using broadcast channels. We studied point-to-point links
+in Chap. 2; this chapter deals with broadcast links and their protocols.
+In any broadcast network, the key issue is how to determine who gets to use
+the channel when there is competition for it. To make this point, consider a con-
+ference call in which six people, on six different telephones, are all connected so
+that each one can hear and talk to all the others. It is very likely that when one of
+them stops speaking, two or more will start talking at once, leading to chaos. In a
+face-to-face meeting, chaos is avoided by external means. For example, at a meet-
+ing, people raise their hands to request permission to speak. When only a single
+channel is available, it is much harder to determine who should go next. Many
+protocols for solving the problem are known. They form the contents of this chap-
+ter. In the literature, broadcast channels are sometimes referred to as multiaccess
+channels or random access channels.
+The protocols used to determine who goes next on a multiaccess channel be-
+long to a sublayer of the data link layer called the MAC (Medium Access Con-
+trol) sublayer. The MAC sublayer is especially important in LANs, particularly
+wireless ones because wireless is naturally a broadcast channel. WANs, in con-
+trast, use point-to-point links, except for satellite networks. Because multiaccess
+channels and LANs are so closely related, in this chapter we will discuss LANs in
+257258
+THE MEDIUM ACCESS CONTROL SUBLAYER
+CHAP. 4
+general, including a few issues that are not strictly part of the MAC sublayer, but
+the main subject here will be control of the channel.
+Technically, the MAC sublayer is the bottom part of the data link layer, so
+logically we should have studied it before examining all the point-to-point proto-
+cols in Chap. 3. Nevertheless, for most people, it is easier to understand protocols
+involving multiple parties after two-party protocols are well understood. For that
+reason we have deviated slightly from a strict bottom-up order of presentati
+nherently inefficient. The basic problem is that when some users are quiescent,
+their bandwidth is simply lost. They are not using it, and no one else is allowed to
+use it either. A static allocation is a poor fit to most computer systems, in which
+data traffic is extremely bursty, often with peak traffic to mean traffic ratios of
+1000:1. Consequently, most of the channels will be idle most of the time.
+The poor performance of static FDM can easily be seen with a simple queue-
+ing theory calculation. Let us start by finding the mean time delay, T, to send a
+frame onto a channel of capacity C bps. We assume that the frames arrive ran-
+domly with an average arrival rate of λ frames/sec, and that the frames vary in
+length with an average length of 1/μ bits. With these parameters, the service rate
+of the channel is μC frames/sec. A standard queueing theory result is
+T =
+1
+μC − λ
+(For the curious, this result is for an ‘‘M/M/1’’ queue. It requires that the ran-
+domness of the times between frame arrivals and the frame lengths follow an
+exponential distribution, or equivalently be the result of a Poisson process.)
+In our example, if C is 100 Mbps, the mean frame length, 1/μ, is 10,000 bits,
+and the frame arrival rate, λ, is 5000 frames/sec, then T = 200 μsec. Note that if
+we ignored the queueing delay and just asked how long it takes to send a 10,000-
+bit frame on a 100-Mbps network, we would get the (incorrect) answer of 100
+μsec. That result only holds when there is no contention for the channel.
+Now let us divide the single channel into N independent subchannels, each
+with capacity C /N bps. The mean input rate on each of the subchannels will now
+be λ/N. Recomputing T, we get
+T N =
+N
+1
+= NT
+=
+μC − λ
+μ(C /N) − (λ/N)
+(4-1)
+The mean delay for the divided channel is N times worse than if all the frames
+were somehow magically arranged orderly in a big central queue. This same result
+says that a bank lobby full of ATM machines is better off having a single queue
+feeding all the machines than a separate queue in front of each machine.
+Precisely the same arguments that apply to FDM also apply to other ways of
+statically dividing the channel. If we were to use time division multiplexing
+(TDM) and allocate each user every Nth time slot, if a user does not use the allo-
+cated slot, it would just lie fallow. The same would hold if we split up the net-
+works physically. Using our previous example again, if we were to replace the
+100-Mbps network with 10 networks of 10 Mbps each and statically allocate each
+user to one of them, the mean delay would jump from 200 μsec to 2 msec.
+Since none of the traditional static channel allocation methods w
+
+it is worthwhile to carefully formulate the allocation problem. Underlying all
+the work done in this area are the following five key assumptions:
+1. Independent Traffic. The model consists of N independent stations
+(e.g., computers, telephones), each with a program or user that gener-
+ates frames for transmission. The expected number of frames gener-
+ated in an interval of length Δt is λΔt, where λ is a constant (the arri-
+val rate of new frames). Once a frame has been generated, the sta-
+tion is blocked and does nothing until the frame has been suc-
+cessfully transmitted.
+2. Single Channel. A single channel is available for all communica-
+tion. All stations can transmit on it and all can receive from it. The
+stations are assumed to be equally capable, though protocols may
+assign them different roles (e.g., priorities).
+3. Observable Collisions. If two frames are transmitted simultan-
+eously, they overlap in time and the resulting signal is garbled. This
+event is called a collision. All stations can detect that a collision has
+occurred. A collided frame must be transmitted again later. No er-
+rors other than those generated by collisions occur.
+4. Continuous or Slotted Time. Time may be assumed continuous, in
+which case frame transmission can begin at any instant. Alterna-
+tively, time may be slotted or divided into discrete intervals (called
+slots). Frame transmissions must then begin at the start of a slot. A
+slot may contain 0, 1, or more frames, corresponding to an idle slot, a
+successful transmission, or a collision, respectively.
+5. Carrier Sense or No Carrier Sense. With the carrier sense as-
+sumption, stations can tell if the channel is in use before trying to use
+it. No station will attempt to use the channel while it is sensed as
+busy. If there is no carrier sense, stations cannot sense the channel
+before trying to use it. They just go ahead and transmit. Only later
+can they determine whether the transmission was successful.
+Some discussion of these assumptions is in order. The first one says that
+frame arrivals are independent, both across stations and at a particular station, and
+that frames are generated unpredictably but at a constant rate. Actually, this as-
+sumption is not a particularly good model of network traffic, as it is well known
+that packets come in bursts over a range of time scales (Paxson and Floyd, 1995;
+and Leland et al., 1994). Nonetheless, Poisson models, as they are frequently
+called, are useful because they are mathematically tractable. They help us analyzeSEC. 4.1
+THE CHANNEL ALLOCATION PROBLEM
+261
+protocols to understand roughly how performance changes over an operating
+range and how it compares with other designs.
+The single-channel assumption is the heart of the model. No external ways to
+communicate exist. Stations cannot raise their hands to request that the teacher
+call on them, so we will have to come up with better solutions.
+The remaining three assumptions depend on the engineering of the system,
+and we will say which assumptions hold when we examine a particular protocol.
+The collision assumption is basic. Stations need some way to detect collisions
+if they are to retransmit frames rather than let them be lost. For wired channels,
+node hardware can be designed to detect collisions when they occur. The stations
+can then terminate their transmissions prematurely to avoid wasting capacity.
+This detection is much harder for wireless channels, so collisions are usually
+inferred after the fact by the lack of an expected acknowledgement frame. It is
+also possible for some frames involved in a collision to be successfully received,
+depending on the details of the signals and the receiving hardware. However, this
+situation is not the common case, so we will assume that all frames involved in a
+collision are lost. We will also see protocols that are designed to prevent collis-
+ions from occurring in the first place.
+The reason for the two alternative assumptions about time is that slotted time
+can be used to improve performance. However, it requires the stations to follow a
+master clock or synchronize their actions with each other to divide time into dis-
+crete intervals. Hence, it is not always available. We will discuss and analyze
+systems with both kinds of time. For a given system, only one of them holds.
+Similarly, a network may have carrier sensing or not have it. Wired networks
+will generally have carrier sense. Wireless networks cannot always use it ef-
+fectively because not every station may be within radio range of every other sta-
+tion. Similarly, carrier sense will not be available in other settings in which a sta-
+tion cannot communicate directly with other stations, for example a cable modem
+in which stations must communicate via the cable headend. Note that the word
+‘‘carrier’’ in this sense refers to a signal on the channel and has nothing to do with
+the common carriers (e.g., telephone companies) that date back to the d
